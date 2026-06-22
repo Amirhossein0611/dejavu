@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -9,7 +9,7 @@ const JALALI_MONTHS = [
   "مهر","آبان","آذر","دی","بهمن","اسفند"
 ];
 
-export default function SetupPage() {
+function SetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const contact = searchParams.get("contact") || "";
@@ -41,7 +41,6 @@ export default function SetupPage() {
     setError("");
 
     try {
-      // چک کردن یوزرنیم تکراری
       const { data: existing } = await supabase
         .from("users")
         .select("username")
@@ -54,7 +53,6 @@ export default function SetupPage() {
         return;
       }
 
-      // ذخیره کاربر توی Supabase
       const isEmail = contact.includes("@");
       const { data: newUser, error: insertError } = await supabase
         .from("users")
@@ -75,7 +73,6 @@ export default function SetupPage() {
         return;
       }
 
-      // ذخیره توی localStorage
       localStorage.setItem("dj_username", username);
       localStorage.setItem("dj_avatar", avatar || "");
       localStorage.setItem("dj_birthday", `${year}/${month}/${day}`);
@@ -83,8 +80,7 @@ export default function SetupPage() {
       localStorage.setItem("dj_user_id", newUser.id);
 
       router.push("/welcome");
-
-    } catch (err) {
+    } catch {
       setError("مشکلی پیش اومد، دوباره امتحان کن");
       setLoading(false);
     }
@@ -108,12 +104,9 @@ export default function SetupPage() {
           <p className="text-sm text-[#555]">یه قدم مونده تا وارد دژاوو بشی</p>
         </div>
 
-        {/* آپلود عکس پروفایل */}
         <div className="flex flex-col items-center gap-3">
-          <div
-            onClick={() => fileRef.current?.click()}
-            className="w-24 h-24 rounded-full border border-[#2a2a2a] flex items-center justify-center cursor-pointer overflow-hidden hover:border-[#444] transition-colors bg-[#111]"
-          >
+          <div onClick={() => fileRef.current?.click()}
+            className="w-24 h-24 rounded-full border border-[#2a2a2a] flex items-center justify-center cursor-pointer overflow-hidden hover:border-[#444] transition-colors bg-[#111]">
             {avatar ? (
               <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
             ) : (
@@ -127,15 +120,11 @@ export default function SetupPage() {
           <p className="text-xs text-[#444]" dir="rtl">عکس پروفایل (اختیاری)</p>
         </div>
 
-        {/* یوزرنیم */}
         <div className="w-full flex flex-col gap-2">
           <label className="text-xs text-[#555] text-right" dir="rtl">یوزرنیم</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333] text-sm">@</span>
-            <input
-              type="text"
-              placeholder="username"
-              value={username}
+            <input type="text" placeholder="username" value={username}
               onChange={(e) => { setUsername(e.target.value.toLowerCase()); setError(""); }}
               className="w-full pl-8 pr-4 py-3 bg-transparent border border-[#1e1e1e] rounded-lg text-[#e8e6e0] text-sm placeholder-[#333] outline-none focus:border-[#444] text-left tracking-wide"
               dir="ltr"
@@ -143,53 +132,44 @@ export default function SetupPage() {
           </div>
         </div>
 
-        {/* تاریخ تولد شمسی */}
         <div className="w-full flex flex-col gap-2">
           <label className="text-xs text-[#555] text-right" dir="rtl">تاریخ تولد (شمسی)</label>
           <div className="flex gap-2" dir="rtl">
-            <input
-              type="number"
-              placeholder="روز"
-              value={day}
-              min={1} max={31}
+            <input type="number" placeholder="روز" value={day} min={1} max={31}
               onChange={(e) => setDay(e.target.value)}
               className="w-1/4 px-3 py-3 bg-transparent border border-[#1e1e1e] rounded-lg text-[#e8e6e0] text-sm placeholder-[#333] outline-none focus:border-[#444] text-center"
             />
-            <select
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
+            <select value={month} onChange={(e) => setMonth(e.target.value)}
               className="flex-1 px-3 py-3 bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg text-sm outline-none focus:border-[#444] text-center"
-              style={{ color: month ? "#e8e6e0" : "#333" }}
-            >
+              style={{ color: month ? "#e8e6e0" : "#333" }}>
               <option value="" disabled>ماه</option>
               {JALALI_MONTHS.map((m, i) => (
                 <option key={i} value={String(i + 1).padStart(2, "0")} style={{ background: "#111" }}>{m}</option>
               ))}
             </select>
-            <input
-              type="number"
-              placeholder="سال"
-              value={year}
-              min={1300} max={1420}
+            <input type="number" placeholder="سال" value={year} min={1300} max={1420}
               onChange={(e) => setYear(e.target.value)}
               className="w-1/4 px-3 py-3 bg-transparent border border-[#1e1e1e] rounded-lg text-[#e8e6e0] text-sm placeholder-[#333] outline-none focus:border-[#444] text-center"
             />
           </div>
         </div>
 
-        {error && (
-          <p className="text-xs text-red-500 text-center" dir="rtl">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-500 text-center" dir="rtl">{error}</p>}
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full py-3 bg-[#e8e6e0] text-[#0a0a0a] font-semibold rounded-lg text-sm hover:opacity-85 transition-opacity disabled:opacity-50"
-        >
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full py-3 bg-[#e8e6e0] text-[#0a0a0a] font-semibold rounded-lg text-sm hover:opacity-85 transition-opacity disabled:opacity-50">
           {loading ? "در حال ثبت..." : "ادامه"}
         </button>
 
       </div>
     </main>
+  );
+}
+
+export default function SetupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a]" />}>
+      <SetupContent />
+    </Suspense>
   );
 }
